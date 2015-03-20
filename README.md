@@ -27,7 +27,7 @@ func main() {
 }
 ```
 
-Then this requests:
+Then this request:
 
     curl -H "Content-Type:application/json" -d '{"name":"World"}' :8080
 
