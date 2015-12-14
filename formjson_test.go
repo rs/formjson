@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/rs/xhandler"
+	"golang.org/x/net/context"
 )
 
 func TestPOST(t *testing.T) {
@@ -67,6 +70,22 @@ func TestGET(t *testing.T) {
 	Handler(h).ServeHTTP(res, req)
 
 	if res.Body.String() != "" {
+		t.Fail()
+	}
+}
+
+func TestXhandler(t *testing.T) {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/", bytes.NewBufferString("{\"name\":\"foo\"}"))
+	req.Header.Add("Content-Type", "application/json")
+
+	h := xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(r.FormValue("name")))
+	})
+
+	HandlerC(h).ServeHTTPC(context.Background(), res, req)
+
+	if res.Body.String() != "foo" {
 		t.Fail()
 	}
 }

@@ -5,6 +5,10 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"golang.org/x/net/context"
+
+	"github.com/rs/xhandler"
 )
 
 // Handler detects when a POST/PUT/PATCH content type is JSON, and transparently convert
@@ -14,6 +18,16 @@ func Handler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handleFormJSONRequest(r)
 		h.ServeHTTP(w, r)
+	})
+}
+
+// HandlerC detects when a POST/PUT/PATCH content type is JSON, and transparently convert
+// the JSON content into a standard PostForm. This does only support posting of a JSON dictionary
+// containing string => string key value pairs.
+func HandlerC(h xhandler.HandlerC) xhandler.HandlerC {
+	return xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		handleFormJSONRequest(r)
+		h.ServeHTTPC(ctx, w, r)
 	})
 }
 
