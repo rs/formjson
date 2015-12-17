@@ -66,6 +66,7 @@ func handleFormJSONRequest(r *http.Request) {
 				r.PostForm.Set(k, "0")
 			}
 		case []interface{}:
+			r.PostForm[k] = []string{}
 			for _, sv := range t {
 				switch st := sv.(type) {
 				case string:
@@ -90,6 +91,7 @@ func handleFormJSONRequest(r *http.Request) {
 	if len(r.PostForm) > 0 {
 		r.Form = url.Values{}
 		for k, vs := range r.PostForm {
+			r.Form[k] = []string{}
 			for _, v := range vs {
 				r.Form.Add(k, v)
 			}

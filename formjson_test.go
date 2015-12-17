@@ -116,6 +116,19 @@ func TestMixArrayJSONValue(t *testing.T) {
 	Handler(h).ServeHTTP(res, req)
 }
 
+func TestEmptyArrayJSONValue(t *testing.T) {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/", bytes.NewBufferString("{\"name\":[]}"))
+	req.Header.Add("Content-Type", "application/json")
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, url.Values{"name": []string{}}, r.Form)
+		assert.Equal(t, url.Values{"name": []string{}}, r.PostForm)
+	})
+
+	Handler(h).ServeHTTP(res, req)
+}
+
 func TestNumberJSONValue(t *testing.T) {
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/", bytes.NewBufferString("{\"name\":1.2}"))
