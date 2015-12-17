@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/rs/xhandler"
+	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 )
 
@@ -16,14 +18,11 @@ func TestPOST(t *testing.T) {
 	req.Header.Add("Content-Type", "application/json")
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(r.FormValue("name")))
+		assert.Equal(t, url.Values{"name": []string{"foo"}}, r.Form)
+		assert.Equal(t, url.Values{"name": []string{"foo"}}, r.PostForm)
 	})
 
 	Handler(h).ServeHTTP(res, req)
-
-	if res.Body.String() != "foo" {
-		t.Fail()
-	}
 }
 
 func TestPUT(t *testing.T) {
@@ -32,14 +31,11 @@ func TestPUT(t *testing.T) {
 	req.Header.Add("Content-Type", "application/json")
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(r.FormValue("name")))
+		assert.Equal(t, url.Values{"name": []string{"foo"}}, r.Form)
+		assert.Equal(t, url.Values{"name": []string{"foo"}}, r.PostForm)
 	})
 
 	Handler(h).ServeHTTP(res, req)
-
-	if res.Body.String() != "foo" {
-		t.Fail()
-	}
 }
 
 func TestPATCH(t *testing.T) {
@@ -48,14 +44,11 @@ func TestPATCH(t *testing.T) {
 	req.Header.Add("Content-Type", "application/json")
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(r.FormValue("name")))
+		assert.Equal(t, url.Values{"name": []string{"foo"}}, r.Form)
+		assert.Equal(t, url.Values{"name": []string{"foo"}}, r.PostForm)
 	})
 
 	Handler(h).ServeHTTP(res, req)
-
-	if res.Body.String() != "foo" {
-		t.Fail()
-	}
 }
 
 func TestGET(t *testing.T) {
@@ -64,14 +57,11 @@ func TestGET(t *testing.T) {
 	req.Header.Add("Content-Type", "application/json")
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(r.FormValue("name")))
+		assert.Nil(t, r.Form)
+		assert.Nil(t, r.PostForm)
 	})
 
 	Handler(h).ServeHTTP(res, req)
-
-	if res.Body.String() != "" {
-		t.Fail()
-	}
 }
 
 func TestXhandler(t *testing.T) {
@@ -80,30 +70,102 @@ func TestXhandler(t *testing.T) {
 	req.Header.Add("Content-Type", "application/json")
 
 	h := xhandler.HandlerFuncC(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(r.FormValue("name")))
+		assert.Equal(t, url.Values{"name": []string{"foo"}}, r.Form)
+		assert.Equal(t, url.Values{"name": []string{"foo"}}, r.PostForm)
 	})
 
 	HandlerC(h).ServeHTTPC(context.Background(), res, req)
-
-	if res.Body.String() != "foo" {
-		t.Fail()
-	}
 }
 
-func TestNonStringJSONValue(t *testing.T) {
+func TestStringJSONValue(t *testing.T) {
 	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/", bytes.NewBufferString("{\"name\":1}"))
+	req, _ := http.NewRequest("POST", "/", bytes.NewBufferString("{\"name\":\"foo\"}"))
 	req.Header.Add("Content-Type", "application/json")
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(r.FormValue("name")))
+		assert.Equal(t, url.Values{"name": []string{"foo"}}, r.Form)
+		assert.Equal(t, url.Values{"name": []string{"foo"}}, r.PostForm)
 	})
 
 	Handler(h).ServeHTTP(res, req)
+}
 
-	if res.Body.String() != "" {
-		t.Fail()
-	}
+func TestStringArrayJSONValue(t *testing.T) {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/", bytes.NewBufferString("{\"name\":[\"foo\",\"bar\"]}"))
+	req.Header.Add("Content-Type", "application/json")
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, url.Values{"name": []string{"foo", "bar"}}, r.Form)
+		assert.Equal(t, url.Values{"name": []string{"foo", "bar"}}, r.PostForm)
+	})
+
+	Handler(h).ServeHTTP(res, req)
+}
+
+func TestMixArrayJSONValue(t *testing.T) {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/", bytes.NewBufferString("{\"name\":[\"foo\",1,true,false]}"))
+	req.Header.Add("Content-Type", "application/json")
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, url.Values{"name": []string{"foo", "1", "1", "0"}}, r.Form)
+		assert.Equal(t, url.Values{"name": []string{"foo", "1", "1", "0"}}, r.PostForm)
+	})
+
+	Handler(h).ServeHTTP(res, req)
+}
+
+func TestNumberJSONValue(t *testing.T) {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/", bytes.NewBufferString("{\"name\":1.2}"))
+	req.Header.Add("Content-Type", "application/json")
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, url.Values{"name": []string{"1.2"}}, r.Form)
+		assert.Equal(t, url.Values{"name": []string{"1.2"}}, r.PostForm)
+	})
+
+	Handler(h).ServeHTTP(res, req)
+}
+
+func TestBoolJSONValue(t *testing.T) {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/", bytes.NewBufferString("{\"a\":true,\"b\":false}"))
+	req.Header.Add("Content-Type", "application/json")
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, url.Values{"a": []string{"1"}, "b": []string{"0"}}, r.Form)
+		assert.Equal(t, url.Values{"a": []string{"1"}, "b": []string{"0"}}, r.PostForm)
+	})
+
+	Handler(h).ServeHTTP(res, req)
+}
+
+func TestUnsupportedJSONValue(t *testing.T) {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/", bytes.NewBufferString("{\"name\":{}}"))
+	req.Header.Add("Content-Type", "application/json")
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Nil(t, r.Form)
+		assert.Equal(t, url.Values{}, r.PostForm)
+	})
+
+	Handler(h).ServeHTTP(res, req)
+}
+
+func TestUnsuportedArrayJSONValue(t *testing.T) {
+	res := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/", bytes.NewBufferString("{\"name\":[\"foo\",{}]}"))
+	req.Header.Add("Content-Type", "application/json")
+
+	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Nil(t, r.Form)
+		assert.Equal(t, url.Values{}, r.PostForm)
+	})
+
+	Handler(h).ServeHTTP(res, req)
 }
 
 func TestMixQueryString(t *testing.T) {
@@ -112,15 +174,11 @@ func TestMixQueryString(t *testing.T) {
 	req.Header.Add("Content-Type", "application/json")
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(r.FormValue("foo")))
-		w.Write([]byte(r.FormValue("name")))
+		assert.Equal(t, url.Values{"name": []string{"baz"}, "foo": []string{"bar"}}, r.Form)
+		assert.Equal(t, url.Values{"name": []string{"baz"}}, r.PostForm)
 	})
 
 	Handler(h).ServeHTTP(res, req)
-
-	if res.Body.String() != "barbaz" {
-		t.Fail()
-	}
 }
 
 func TestInvalidJSON(t *testing.T) {
@@ -129,14 +187,11 @@ func TestInvalidJSON(t *testing.T) {
 	req.Header.Add("Content-Type", "application/json")
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(r.FormValue("name")))
+		assert.Nil(t, r.Form)
+		assert.Nil(t, r.PostForm)
 	})
 
 	Handler(h).ServeHTTP(res, req)
-
-	if res.Body.String() != "" {
-		t.Fail()
-	}
 }
 
 func TestInvalidContentType(t *testing.T) {
@@ -145,12 +200,9 @@ func TestInvalidContentType(t *testing.T) {
 	req.Header.Add("Content-Type", "application/bson")
 
 	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(r.FormValue("name")))
+		assert.Nil(t, r.Form)
+		assert.Nil(t, r.PostForm)
 	})
 
 	Handler(h).ServeHTTP(res, req)
-
-	if res.Body.String() != "" {
-		t.Fail()
-	}
 }
